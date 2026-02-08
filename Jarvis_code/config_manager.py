@@ -103,7 +103,13 @@ class ConfigManager:
     
     def get_llm_config(self) -> Dict[str, str]:
         """Helper to get LLM config"""
-        return self.get("llm", {"provider": "google", "model": "gemini-2.5-flash-native-audio-preview-09-2025"})
+        return self.get(
+            "llm",
+            {
+                "provider": "google",
+                "model": "gemini-2.5-flash-native-audio-preview-09-2025",
+            },
+        )
 
     def get_mem0_key(self) -> Optional[str]:
         """Helper to get Mem0 API key"""

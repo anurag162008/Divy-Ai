@@ -11,6 +11,18 @@ from livekit.plugins import google, noise_cancellation, openai
 # Import your custom modules
 from Jarvis_prompts import load_prompts
 from memory_loop import MemoryExtractor
+from os_controller import (
+    launch_app,
+    lock_screen,
+    open_calendar,
+    open_email,
+    open_github,
+    open_instagram,
+    open_path,
+    open_url,
+    open_whatsapp,
+    set_system_volume,
+)
 import os
 from mem0 import AsyncMemoryClient
 import logging
@@ -25,12 +37,13 @@ load_dotenv()
 
 
 class Assistant(Agent):
-    def __init__(self, chat_ctx, llm_instance, instructions_text) -> None:
+    def __init__(self, chat_ctx, llm_instance, instructions_text, tools=None) -> None:
         super().__init__(
             instructions=instructions_text,
             chat_ctx=chat_ctx,
             llm=llm_instance
         )
+        self._tools = list(tools or [])
 
 
 async def entrypoint(ctx: agents.JobContext):
@@ -105,6 +118,30 @@ async def entrypoint(ctx: agents.JobContext):
             api_key=openai_api_key,
             voice=voice_name
         )
+    elif provider == "openrouter":
+        openrouter_api_key = config.get_api_key("openrouter")
+        if not openrouter_api_key:
+            logger.error("OpenRouter API key not found in config!")
+            raise ValueError("OpenRouter API key is required when using OpenRouter provider")
+
+        llm_instance = openai.realtime.RealtimeModel(
+            model=model_name,
+            api_key=openrouter_api_key,
+            base_url="https://openrouter.ai/api/v1",
+            voice=voice_name
+        )
+    elif provider == "huggingface":
+        huggingface_api_key = config.get_api_key("huggingface")
+        if not huggingface_api_key:
+            logger.error("Hugging Face API key not found in config!")
+            raise ValueError("Hugging Face API key is required when using Hugging Face provider")
+
+        llm_instance = openai.realtime.RealtimeModel(
+            model=model_name,
+            api_key=huggingface_api_key,
+            base_url="https://api-inference.huggingface.co/v1",
+            voice=voice_name
+        )
     else:
         # Fallback to Google
         logger.error(f"Unsupported LLM provider: {provider}. Falling back to Google.")
@@ -134,9 +171,27 @@ async def entrypoint(ctx: agents.JobContext):
     )
     
     # Start the session
+    os_tools = [
+        open_path,
+        open_url,
+        launch_app,
+        open_email,
+        open_calendar,
+        open_github,
+        open_whatsapp,
+        open_instagram,
+        set_system_volume,
+        lock_screen,
+    ]
+
     await session.start(
         room=ctx.room,
-        agent=Assistant(chat_ctx=initial_ctx, llm_instance=llm_instance, instructions_text=instructions_prompt),
+        agent=Assistant(
+            chat_ctx=initial_ctx,
+            llm_instance=llm_instance,
+            instructions_text=instructions_prompt,
+            tools=os_tools,
+        ),
         room_input_options=RoomInputOptions(
             noise_cancellation=noise_cancellation.BVC()
         ),
