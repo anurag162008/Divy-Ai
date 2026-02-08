@@ -8,7 +8,8 @@ import shutil
 
 # --- Configuration ---
 REQUIRED_PYTHON_MAJOR = 3
-REQUIRED_PYTHON_MINOR = 13
+SUPPORTED_PYTHON_MIN_MINOR = 11
+SUPPORTED_PYTHON_MAX_MINOR = 13
 REQUIRED_NODE_VERSION_STR = "v20.19.6" # Exact string from node -v
 
 # --- ANSI Colors ---
@@ -36,31 +37,40 @@ def get_base_dir():
 
 def check_python(fix=False):
     """
-    Checks if the CURRENT running python is 3.13.
+    Checks if the CURRENT running python is 3.11-3.13.
     If fix=True, prompts user to download (and then must exit).
     """
     current_ver = sys.version_info
-    is_valid = (current_ver.major == REQUIRED_PYTHON_MAJOR and current_ver.minor == REQUIRED_PYTHON_MINOR)
+    is_valid = (
+        current_ver.major == REQUIRED_PYTHON_MAJOR
+        and SUPPORTED_PYTHON_MIN_MINOR <= current_ver.minor <= SUPPORTED_PYTHON_MAX_MINOR
+    )
     
     if is_valid:
         print_success(f"Python {current_ver.major}.{current_ver.minor} detected")
         return True
     
-    print_error(f"Python {REQUIRED_PYTHON_MAJOR}.{REQUIRED_PYTHON_MINOR} is required. Detected: {current_ver.major}.{current_ver.minor}")
+    print_error(
+        "Python 3.11-3.13 is required. "
+        f"Detected: {current_ver.major}.{current_ver.minor}"
+    )
     
     if not fix:
         return False
         
     print(f"\n{Colors.BOLD}Options:{Colors.ENDC}")
-    print("[1] Download Python 3.13")
+    print("[1] Download Python (3.11-3.13)")
     print("[2] Exit")
     
     choice = input(f"\n{Colors.CYAN}Select option [1-2]: {Colors.ENDC}")
     
     if choice == "1":
         print_step("Opening Python download page...")
-        webbrowser.open("https://www.python.org/downloads/release/python-3130/")
-        print_warning("ACTION REQUIRED: Install Python 3.13, check 'Add to PATH', and RESTART this terminal.")
+        webbrowser.open("https://www.python.org/downloads/")
+        print_warning(
+            "ACTION REQUIRED: Install Python 3.11-3.13, check 'Add to PATH', "
+            "and RESTART this terminal."
+        )
         sys.exit(0) # Logic requires restart
     return False
 
